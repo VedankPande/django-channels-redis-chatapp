@@ -1,5 +1,4 @@
 from rest_framework import serializers,status
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, get_user_model
 
 class RegisterSerializer(serializers.ModelSerializer):

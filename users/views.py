@@ -2,19 +2,16 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.contrib.auth import authenticate,login,logout
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView
 )
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .serializers import RegisterSerializer, LoginSerializer
-from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.conf import settings
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from django.conf import settings
+from django.contrib.auth import get_user_model
 
+from .serializers import RegisterSerializer, LoginSerializer
+from .recommender import get_suggested_friends
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -37,6 +34,8 @@ class Register(APIView):
 
 class CustomTokenRefreshView(TokenRefreshView):
 
+    authentication_classes = [IsAuthenticated]
+    
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.body)
 
@@ -77,7 +76,6 @@ class Login(APIView):
 
     def post(self,request):
 
-
         serializer = LoginSerializer(data = request.data, context={'request': request})
 
         if serializer.is_valid():
@@ -112,6 +110,8 @@ class Login(APIView):
         
 class Logout(APIView):
 
+    authentication_classes = [IsAuthenticated]
+
     def post(self,request):
         
         try:
@@ -122,3 +122,14 @@ class Logout(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST,data={"message":f"Error occurred: {e}"})
+        
+class SuggestedFriendsView(APIView):
+
+    def get(self,request, user_id):
+
+        try:
+            suggested_friends = get_suggested_friends(user_id)
+            return Response(status=status.HTTP_200_OK, data={"message":f"{suggested_friends}"})
+
+        except Exception as e:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR,data={"error:":e})
